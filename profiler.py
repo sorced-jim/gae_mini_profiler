@@ -441,10 +441,11 @@ class ProfilerWSGIMiddleware(object):
             if admins:
                 version = environ.get("CURRENT_VERSION_ID").split('.')[0]
                 app_id = app_identity.get_application_id()
+                path_info = environ.get("PATH_INFO", "")
                 mail.send_mail(
                     'profiles@%s.appspotmail.com' % app_id,
                     admins,
-                    'Profile for %s' % request_id,
+                    'Profile for %s' % path_info,
                     'Go to https://%s-dot-%s.appspot.com/gae_mini_profiler/shared?request_id=%s' % (
                         version, app_id, request_id))
                                 
