@@ -418,7 +418,7 @@ class ProfilerWSGIMiddleware(object):
             admins = config.email_profile_results_to(environ)
             if admins:
                 app_id = app_identity.get_application_id()
-                mail.send_email(
+                mail.send_mail(
                     'profiles@%s.appspotmail.com' % app_id,
                     admins,
                     'Profile for %s' % request_id,
