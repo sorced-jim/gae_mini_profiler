@@ -135,8 +135,13 @@ def unformat_attrval(text, i, level, delim, out=UnformatStream()):
 
     # attr
     start = i
-    while text[i] != '=':
-        i += 1
+    i = text.find('=', start)
+    if i < 0 and text[start] == "'":
+	i = text.find("'", start + 1)
+	out.emit_token(text[start+1:i-1], level)
+	i += 1
+        return i 
+
     attr = text[start:i]
     out.emit_token(attr, level)
 

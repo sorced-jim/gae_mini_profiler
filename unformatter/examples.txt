@@ -1,3 +1,4 @@
+PutRequest<entity=[EntityProto<entity_group=Path<>, key=Reference<app='foobard', path=Path<element=[Path_Element<id=0, type='Permissions'>]>>, property=[Property<multiple=False, name='name', value=PropertyValue<>>], raw_property=[Property<meaning=14, multiple=False, name='models', value=PropertyValue<stringvalue=Blob<'\\x80\\x02}q\\x00.'>>>]>]>
 MemcacheGetRequest<key_=['notifications_dict_for_test@example.com'], lazy_init_lock_=LockType<locked_status=False>>
 MemcacheGetResponse<item_=[]>
 MemcacheGetRequest<has_name_space_=1, key_=['__layer_cache_models._get_settings_dict__'], lazy_init_lock_=LockType<locked_status=False>, name_space_='764.1'>

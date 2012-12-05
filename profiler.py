@@ -372,12 +372,6 @@ class ProfilerWSGIMiddleware(object):
                 # Add logging handler
                 self.add_handler()
 
-                # Monkey patch appstats.formatting to fix string quoting bug
-                # See http://code.google.com/p/googleappengine/issues/detail?id=5976
-                import unformatter.formatting
-                import google.appengine.ext.appstats.formatting
-                google.appengine.ext.appstats.formatting._format_value = unformatter.formatting._format_value
-
                 # Configure AppStats output, keeping a high level of request
                 # content so we can detect dupe RPCs more accurately
                 from google.appengine.ext.appstats import recording
