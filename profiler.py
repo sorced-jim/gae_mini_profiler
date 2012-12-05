@@ -4,6 +4,8 @@ import logging
 import os
 import cPickle as pickle
 import re
+import threading
+import base64
 
 # use json in Python 2.7, fallback to simplejson for Python 2.5
 try:
@@ -31,8 +33,24 @@ if os.environ.get("SERVER_SOFTWARE", "Devel").startswith("Devel"):
 else:
     config = gae_mini_profiler.config.ProfilerConfigProduction
 
-# request_id is a per-request identifier accessed by a couple other pieces of gae_mini_profiler
-request_id = None
+class RequestStore:
+    def __init__(self):
+        self._threadlocal = threading.local()
+
+    def clear_id(self):
+        if not hasattr(self._threadlocal, 'request_id'): return
+        self._threadlocal.request_id = None
+    
+    def generate_id(self):
+        self._threadlocal.request_id = base64.urlsafe_b64encode(os.urandom(5))
+        return self._threadlocal.request_id
+    
+    def get_id(self):
+        if not hasattr(self._threadlocal, 'request_id'): return None
+        return self._threadlocal.request_id
+    
+requeststore = RequestStore()
+
 
 class SharedStatsHandler(RequestHandler):
 
@@ -310,6 +328,7 @@ class ProfilerWSGIMiddleware(object):
 
     def __init__(self, app):
         template.register_template_library('gae_mini_profiler.templatetags')
+        self._lock = threading.RLock()
         self.app = app
         self.app_clean = app
         self.prof = None
@@ -322,23 +341,26 @@ class ProfilerWSGIMiddleware(object):
         self.end = None
 
     def __call__(self, environ, start_response):
-
-        global request_id
-        request_id = None
-
-        # Start w/ a non-profiled app at the beginning of each request
-        self.app = self.app_clean
-        self.prof = None
-        self.recorder = None
-        self.temporary_redirect = False
-        self.simple_timing = cookies.get_cookie_value("g-m-p-disabled") == "1"
-
         # Never profile calls to the profiler itself to avoid endless recursion.
-        if config.should_profile(environ) and not environ.get("PATH_INFO", "").startswith("/gae_mini_profiler/"):
+        if not config.should_profile(environ) or environ.get("PATH_INFO", "").startswith("/gae_mini_profiler/"):
+            result = self.app(environ, start_response)
+            for value in result:
+                yield value
+            return
 
+        try:
+            self._lock.acquire()
+    
+            # Start w/ a non-profiled app at the beginning of each request
+            self.app = self.app_clean
+            self.prof = None
+            self.recorder = None
+            self.temporary_redirect = False
+            self.simple_timing = cookies.get_cookie_value("g-m-p-disabled") == "1"
+            requeststore.clear_id()
+            
             # Set a random ID for this request so we can look up stats later
-            import base64
-            request_id = base64.urlsafe_b64encode(os.urandom(5))
+            request_id = requeststore.generate_id()
 
             # Send request id in headers so jQuery ajax calls can pick
             # up profiles.
@@ -428,12 +450,10 @@ class ProfilerWSGIMiddleware(object):
             # Just in case we're using up memory in the recorder and profiler
             self.recorder = None
             self.prof = None
-            request_id = None
+            requeststore.clear_id()
 
-        else:
-            result = self.app(environ, start_response)
-            for value in result:
-                yield value
+        finally:
+            self._lock.release()
 
     def add_handler(self):
         if self.handler is None:
@@ -482,10 +502,10 @@ class ProfilerWSGIMiddleware(object):
                 reg = re.compile("mp-r-id=([^&]+)")
 
                 # Keep any chain of redirects around
-                request_id_chain = request_id
+                request_id_chain = requeststore.get_id()
                 match = reg.search(environ.get("QUERY_STRING"))
                 if match:
-                    request_id_chain = ",".join([match.groups()[0], request_id])
+                    request_id_chain = ",".join([match.groups()[0], requeststore.get_id()])
 
                 # Remove any pre-existing miniprofiler redirect id
                 location = header[1]
