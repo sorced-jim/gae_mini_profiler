@@ -439,13 +439,14 @@ class ProfilerWSGIMiddleware(object):
             RequestStats(request_id, environ, self).store()
             admins = config.email_profile_results_to(environ)
             if admins:
+                version = environ.get("CURRENT_VERSION_ID").split('.')[0]
                 app_id = app_identity.get_application_id()
                 mail.send_mail(
                     'profiles@%s.appspotmail.com' % app_id,
                     admins,
                     'Profile for %s' % request_id,
-                    'Go to https://%s.appspot.com/gae_mini_profiler/shared?request_id=%s' % (
-                        app_id, request_id))
+                    'Go to https://%s-dot-%s.appspot.com/gae_mini_profiler/shared?request_id=%s' % (
+                        version, app_id, request_id))
                                 
             # Just in case we're using up memory in the recorder and profiler
             self.recorder = None
