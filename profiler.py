@@ -26,7 +26,7 @@ import cleanup
 import cookies
 
 import gae_mini_profiler.config
-if os.environ["SERVER_SOFTWARE"].startswith("Devel"):
+if os.environ.get("SERVER_SOFTWARE", "Devel").startswith("Devel"):
     config = gae_mini_profiler.config.ProfilerConfigDevelopment
 else:
     config = gae_mini_profiler.config.ProfilerConfigProduction
