@@ -7,6 +7,7 @@ enabled_profiler_emails = [
     "test1@example.com",
 ]
 
+
 # Customize should_profile to return true whenever a request should be profiled.
 # This function will be run once per request, so make sure its contents are fast.
 class ProfilerConfigProduction:
@@ -15,7 +16,15 @@ class ProfilerConfigProduction:
         user = users.get_current_user()
         return user and user.email() in enabled_profiler_emails
 
+    @staticmethod
+    def email_profile_results_to(environ):
+        return []
+
 class ProfilerConfigDevelopment:
     @staticmethod
     def should_profile(environ):
         return users.is_current_user_admin()
+
+    @staticmethod
+    def email_profile_results_to(environ):
+        return []

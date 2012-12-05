@@ -15,8 +15,10 @@ import StringIO
 from types import GeneratorType
 import zlib
 
-from google.appengine.ext.webapp import template, RequestHandler
+from google.appengine.api import app_identity
 from google.appengine.api import memcache
+from google.appengine.api import mail
+from google.appengine.ext.webapp import template, RequestHandler
 
 import unformatter
 from pprint import pformat
@@ -419,7 +421,16 @@ class ProfilerWSGIMiddleware(object):
 
             # Store stats for later access
             RequestStats(request_id, environ, self).store()
-
+            admins = config.email_profile_results_to(environ)
+            if admins:
+                app_id = app_identity.get_application_id()
+                mail.send_email(
+                    'profiles@%s.appspotmail.com' % app_id,
+                    admins,
+                    'Profile for %s' % request_id,
+                    'Go to https://%s.appspot.com/gae_mini_profiler/shared?request_id=%s' % (
+                        app_id, request_id))
+                                
             # Just in case we're using up memory in the recorder and profiler
             self.recorder = None
             self.prof = None
