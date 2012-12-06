@@ -341,8 +341,12 @@ class ProfilerWSGIMiddleware(object):
         self.end = None
 
     def __call__(self, environ, start_response):
+        path_info = environ.get("PATH_INFO", "")
         # Never profile calls to the profiler itself to avoid endless recursion.
-        if not config.should_profile(environ) or environ.get("PATH_INFO", "").startswith("/gae_mini_profiler/"):
+        should_not_profile = (not config.should_profile(environ) or
+                              path_info.startswith("/gae_mini_profiler/") or
+                              path_info.startswith('/_ah/stats'))
+        if should_not_profile:
             result = self.app(environ, start_response)
             for value in result:
                 yield value
